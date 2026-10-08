@@ -56,7 +56,13 @@ input,select{font:inherit;padding:11px;border:1.5px solid var(--line);border-rad
 .add,.rule{display:flex;gap:8px;flex-wrap:wrap}
 .add input{flex:1}
 .add .btn{width:auto}
-.rule select{flex:1 1 40%}
+.rule select,.pk{flex:1 1 100%}
+.pk input{width:100%}
+.sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sug:empty{display:none}
+.ps{padding:9px 4px;width:84px;font-size:14px}
+.add .ps{width:auto}
+.pl i b{font-weight:400;color:var(--ink);margin-left:6px}
 .mute{color:var(--mute);font-size:14px;margin:6px 0 0}
 .warn{color:var(--red);font-size:14px;margin:8px 0 0}
 </style>
@@ -96,6 +102,7 @@ input,select{font:inherit;padding:11px;border:1.5px solid var(--line);border-rad
     <h2>הוספת שחקן</h2>
     <div class="add">
       <input id="nm" placeholder="שם" maxlength="20" autocomplete="off">
+      <select class="ps" id="np" aria-label="עמדה"><option value="">עמדה</option><option value="d">הגנה</option><option value="m">אמצע</option><option value="a">התקפה</option></select>
       <button class="rv" id="rt" type="button" data-v="3" aria-label="דירוג">3.0</button>
       <button class="btn" id="add">הוסף</button>
     </div>
@@ -109,10 +116,11 @@ input,select{font:inherit;padding:11px;border:1.5px solid var(--line);border-rad
   <div class="box">
     <h2>זוגות</h2>
     <div class="rule">
-      <select id="ra"></select>
+      <div class="pk"><input id="ra" type="search" placeholder="חפש שחקן ראשון" autocomplete="off"><div class="sug" id="ras"></div></div>
       <select id="rk"><option value="t">חייבים ביחד</option><option value="n">לא ביחד</option></select>
-      <select id="rb"></select>
+      <div class="pk"><input id="rb" type="search" placeholder="חפש שחקן שני" autocomplete="off"><div class="sug" id="rbs"></div></div>
       <button class="btn alt" id="radd" style="width:100%">הוסף כלל</button>
+      <p class="warn" id="rm" style="margin:0"></p>
     </div>
     <div id="rl"></div>
   </div>
@@ -123,13 +131,15 @@ input,select{font:inherit;padding:11px;border:1.5px solid var(--line);border-rad
   <div class="btns" style="margin-top:0"><button class="btn alt" id="wc">ביטול</button><button class="btn" id="wo">אישור</button></div></div></div>
 <script>
 const KEY='football-teams-v2';
-const rate=v=>{v=parseFloat(String(v).replace(',','.'));if(isNaN(v))v=3;return Math.min(5,Math.max(0.1,Math.round(v*10)/10))};
+const rate=v=>{v=parseFloat(String(v).replace(',','.'));if(isNaN(v))v=3;return Math.min(5,Math.max(1,Math.round(v*10)/10))};
 let S={players:[],rules:[],present:[]},teams=null,sel=null,last='';
-try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.players){S=x;S.players.forEach(p=>p.r=rate(p.r));S.present=(S.present||[]).slice(0,21)}}catch(e){}
+try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.players){S=x;S.players.forEach(p=>{p.r=rate(p.r);p.pos=pos(p.pos)});S.present=(S.present||[]).slice(0,21)}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const P=id=>S.players.find(p=>p.id===id);
+const POS={d:'הגנה',m:'אמצע',a:'התקפה'};
+const pos=v=>POS[v]?v:'';
 const COL=[{n:'אדומים',e:'🔴',c:'--red'},{n:'כחולים',e:'🔵',c:'--blue'},{n:'צהובים',e:'🟡',c:'--yellow'}];
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const key=t=>t.map(x=>x.slice().sort().join()).sort().join('|');
@@ -158,20 +168,34 @@ $('none').onclick=e=>{e.preventDefault();S.present=[];$('m').textContent='';save
 function split(){
   const ids=S.present.filter(P),n=ids.length;$('sm').textContent='';
   if(n<4){$('sm').textContent='סמן לפחות 4 שחקנים.';return}
-  const k=n>14?3:2,base=Math.floor(n/k),ex=n%k,cands=[];
-  const ok=t=>S.rules.every(r=>{const a=t.findIndex(x=>x.includes(r.a)),b=t.findIndex(x=>x.includes(r.b));return a<0||b<0||(r.k==='t'?a===b:a!==b)});
-  for(let i=0;i<4000;i++){
+  const k=n>14?3:2,base=Math.floor(n/k),ex=n%k,R={},PS={};
+  ids.forEach(id=>{R[id]=Math.round(P(id).r*10);PS[id]=P(id).pos});
+  const tm={};
+  const score=t=>{
+    t.forEach((x,i)=>x.forEach(id=>tm[id]=i));
+    let v=0;for(const r of S.rules){const a=tm[r.a],b=tm[r.b];if(a!==undefined&&b!==undefined&&(r.k==='t'?a!==b:a===b))v++}
+    const su=t.map(x=>x.reduce((s,id)=>s+R[id],0)),d=Math.max(...su)-Math.min(...su);
+    let ps=0;for(const q of ['d','m','a']){const c=t.map(x=>x.filter(id=>PS[id]===q).length);ps+=Math.max(...c)-Math.min(...c)}
+    return v*1e6+d*100+ps};
+  const found=new Map();
+  for(let rs=0;rs<80;rs++){
     const o=shuf(ids.slice()),sz=shuf(Array.from({length:k},(_,j)=>base+(j<ex?1:0))),t=[];let p=0;
     for(const s of sz){t.push(o.slice(p,p+s));p+=s}
-    if(!ok(t))continue;
-    const av=t.map(x=>x.reduce((s,id)=>s+P(id).r,0)/x.length);
-    cands.push({t,d:Math.max(...av)-Math.min(...av)});
+    let cur=score(t);
+    for(let it=0;it<1500;it++){
+      const a=Math.floor(Math.random()*k);let b=Math.floor(Math.random()*(k-1));if(b>=a)b++;
+      const i=Math.floor(Math.random()*t[a].length),j=Math.floor(Math.random()*t[b].length);
+      [t[a][i],t[b][j]]=[t[b][j],t[a][i]];
+      const sc=score(t);
+      if(sc<=cur)cur=sc;else [t[a][i],t[b][j]]=[t[b][j],t[a][i]];
+    }
+    const q=key(t);if(!found.has(q))found.set(q,{t:t.map(x=>x.slice()),s:cur});
   }
-  if(!cands.length){$('sm').textContent='אי אפשר לעמוד בכל הזוגות שהגדרת. נסה לבטל כלל.';return}
-  cands.sort((a,b)=>a.d-b.d);
-  const seen=new Set(),pool=[];
-  for(const c of cands){const q=key(c.t);if(seen.has(q))continue;seen.add(q);if(q!==last)pool.push(c);if(pool.length>=6)break}
-  const c=pool.length?pool[Math.floor(Math.random()*pool.length)]:cands[0];
+  const all=[...found.values()].sort((a,b)=>a.s-b.s);
+  if(all[0].s>=1e6){$('sm').textContent='אי אפשר לעמוד בכל הזוגות שהגדרת. נסה לבטל כלל.';return}
+  const lv=[...new Set(all.map(c=>c.s))];
+  let pool=[];for(const L of lv){pool=all.filter(c=>c.s===L&&key(c.t)!==last);if(pool.length)break}
+  const c=pool.length?pool[Math.floor(Math.random()*pool.length)]:all[0];
   last=key(c.t);teams=c.t;sel=null;renderTeams();
   $('res').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -183,7 +207,7 @@ function renderTeams(){
   $('res').innerHTML=teams.map((t,i)=>{
     const C=COL[i],av=t.length?(t.reduce((s,id)=>s+P(id).r,0)/t.length).toFixed(1):'-';
     return `<div class="team" style="--tc:var(${C.c})" data-t="${i}"><div class="th"><b>${C.e} ${C.n}</b><span>${t.length} שחקנים · סה״כ ${tot(t).toFixed(1)} · ממוצע ${av}</span></div>`+
-      t.map(id=>`<button class="pl${sel===id?' sel':''}" data-p="${id}">${esc(P(id).n)}<i>${P(id).r.toFixed(1)}</i></button>`).join('')+'</div>';
+      t.map(id=>`<button class="pl${sel===id?' sel':''}" data-p="${id}">${esc(P(id).n)}<i>${P(id).pos?`<b>${POS[P(id).pos]}</b>`:''}${P(id).r.toFixed(1)}</i></button>`).join('')+'</div>';
   }).join('');
   const v=S.rules.filter(r=>{const a=teams.findIndex(x=>x.includes(r.a)),b=teams.findIndex(x=>x.includes(r.b));return a>=0&&b>=0&&(r.k==='t'?a!==b:a===b)});
   $('viol').innerHTML=v.map(r=>`⚠️ ${esc(P(r.a).n)} ו${esc(P(r.b).n)}: ${r.k==='t'?'צריכים להיות ביחד':'לא אמורים להיות ביחד'}`).join('<br>');
@@ -205,9 +229,7 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(shareText())
 
 function renderPlayers(){
   $('pc').textContent=S.players.length+' שחקנים';
-  $('pl').innerHTML=S.players.length?S.players.map(p=>`<div class="row"><span class="nm">${esc(p.n)}</span><button class="rv" data-a="v" data-id="${p.id}" aria-label="דירוג">${p.r.toFixed(1)}</button><button class="x" data-a="d" data-id="${p.id}">✕</button></div>`).join(''):'<p class="mute">עוד אין שחקנים. הוסף את החברים למעלה.</p>';
-  const o=S.players.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join('');
-  $('ra').innerHTML=o;$('rb').innerHTML=o;
+  $('pl').innerHTML=S.players.length?S.players.map(p=>`<div class="row"><span class="nm">${esc(p.n)}</span><select class="ps" data-id="${p.id}" aria-label="עמדה"><option value="">עמדה</option>${Object.entries(POS).map(([k,v])=>`<option value="${k}"${p.pos===k?' selected':''}>${v}</option>`).join('')}</select><button class="rv" data-a="v" data-id="${p.id}" aria-label="דירוג">${p.r.toFixed(1)}</button><button class="x" data-a="d" data-id="${p.id}">✕</button></div>`).join(''):'<p class="mute">עוד אין שחקנים. הוסף את החברים למעלה.</p>';
   $('rl').innerHTML=S.rules.map((r,i)=>`<div class="row"><span class="nm">${esc(P(r.a).n)} ${r.k==='t'?'חייבים ביחד עם':'לא ביחד עם'} ${esc(P(r.b).n)}</span><button class="x" data-a="r" data-i="${i}">✕</button></div>`).join('');
 }
 function addPlayer(){
@@ -215,8 +237,8 @@ function addPlayer(){
   if(!n)return;
   if(S.players.some(p=>p.n===n)){$('pm').textContent='כבר יש שחקן בשם הזה.';return}
   const id=Date.now()+Math.floor(Math.random()*1000);
-  S.players.push({id,n,r:rate($('rt').dataset.v)});save();
-  $('nm').value='';renderAll();$('nm').focus();
+  S.players.push({id,n,r:rate($('rt').dataset.v),pos:pos($('np').value)});save();
+  $('nm').value='';$('np').value='';renderAll();$('nm').focus();
 }
 $('add').onclick=addPlayer;
 $('nm').onkeydown=e=>{if(e.key==='Enter')addPlayer()};
@@ -226,10 +248,22 @@ $('pl').onclick=e=>{
   if(b.dataset.a==='d'){S.players=S.players.filter(x=>x.id!==id);S.present=S.present.filter(x=>x!==id);S.rules=S.rules.filter(r=>r.a!==id&&r.b!==id);teams=null}
   save();renderAll();
 };
+$('pl').onchange=e=>{const x=e.target.closest('.ps');if(!x)return;const p=P(+x.dataset.id);if(p){p.pos=pos(x.value);save();renderTeams()}};
+function picker(inp,box){
+  const show=()=>{const q=inp.value.trim();inp.dataset.id='';
+    const rk=p=>p.n===q?0:p.n.startsWith(q)?1:2,m=q?S.players.filter(p=>p.n.includes(q)).sort((x,y)=>rk(x)-rk(y)||x.n.localeCompare(y.n,'he')).slice(0,8):[];
+    $(box).innerHTML=m.map(p=>`<button class="chip" type="button" data-id="${p.id}">${esc(p.n)}</button>`).join('');
+    const ex=S.players.find(p=>p.n===q);if(ex)inp.dataset.id=ex.id};
+  $(inp.id).oninput=show;
+  $(box).onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;inp.value=P(+b.dataset.id).n;inp.dataset.id=b.dataset.id;$(box).innerHTML=''};
+}
+picker($('ra'),'ras');picker($('rb'),'rbs');
 $('radd').onclick=()=>{
-  const a=+$('ra').value,b=+$('rb').value;
-  if(!a||!b||a===b)return;
-  S.rules.push({a,b,k:$('rk').value});save();renderAll();
+  const a=+$('ra').dataset.id,b=+$('rb').dataset.id;$('rm').textContent='';
+  if(!a||!b){$('rm').textContent='בחר שני שחקנים מהרשימה שמופיעה בזמן ההקלדה.';return}
+  if(a===b){$('rm').textContent='בחר שני שחקנים שונים.';return}
+  S.rules.push({a,b,k:$('rk').value});save();
+  ['ra','rb'].forEach(i=>{$(i).value='';$(i).dataset.id=''});renderAll();
 };
 $('rl').onclick=e=>{const b=e.target.closest('[data-a="r"]');if(!b)return;S.rules.splice(+b.dataset.i,1);save();renderAll()};
 $('bk').onclick=async()=>{const t=JSON.stringify({players:S.players,rules:S.rules});
@@ -238,18 +272,18 @@ $('bk').onclick=async()=>{const t=JSON.stringify({players:S.players,rules:S.rule
 $('rs').onclick=()=>{$('bt').hidden=false;$('bgo').hidden=false;$('bt').value='';$('bt').focus()};
 $('bgo').onclick=()=>{try{const x=JSON.parse($('bt').value);if(!Array.isArray(x.players))throw 0;
   const ids=x.players.map(p=>+p.id);
-  S={players:x.players.map(p=>({id:+p.id,n:String(p.n),r:rate(p.r)})),rules:(x.rules||[]).filter(r=>ids.includes(r.a)&&ids.includes(r.b)),present:[]};
+  S={players:x.players.map(p=>({id:+p.id,n:String(p.n),r:rate(p.r),pos:pos(p.pos)})),rules:(x.rules||[]).filter(r=>ids.includes(r.a)&&ids.includes(r.b)),present:[]};
   teams=null;save();renderAll();$('bt').hidden=true;$('bgo').hidden=true;$('bm').textContent=''}
   catch(e){$('bm').textContent='הגיבוי לא תקין. הדבק את הטקסט המלא כפי שהועתק.'}};
 let wcb=null;
-$('wl').innerHTML=Array.from({length:50},(_,i)=>`<div>${((i+1)/10).toFixed(1)}</div>`).join('');
-const wi=()=>Math.min(49,Math.max(0,Math.round($('wl').scrollTop/40)));
+$('wl').innerHTML=Array.from({length:41},(_,i)=>`<div>${(1+i/10).toFixed(1)}</div>`).join('');
+const wi=()=>Math.min(40,Math.max(0,Math.round($('wl').scrollTop/40)));
 function mark(){const k=wi();[...$('wl').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
 $('wl').onscroll=mark;
-function pick(v,cb){wcb=cb;$('wh').classList.add('open');$('wl').scrollTop=Math.max(0,Math.round(v*10)-1)*40;mark()}
+function pick(v,cb){wcb=cb;$('wh').classList.add('open');$('wl').scrollTop=Math.max(0,Math.round((v-1)*10))*40;mark()}
 $('wc').onclick=()=>$('wh').classList.remove('open');
 $('wh').onclick=e=>{if(e.target===$('wh'))$('wh').classList.remove('open')};
-$('wo').onclick=()=>{const v=(wi()+1)/10;$('wh').classList.remove('open');if(wcb)wcb(v)};
+$('wo').onclick=()=>{const v=Math.round(10+wi())/10;$('wh').classList.remove('open');if(wcb)wcb(v)};
 $('rt').onclick=()=>pick(+$('rt').dataset.v,v=>{$('rt').dataset.v=v;$('rt').textContent=v.toFixed(1)});
 function renderAll(){renderChips();renderPlayers();renderTeams()}
 renderAll();
