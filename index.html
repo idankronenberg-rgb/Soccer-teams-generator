@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#17803f">
+<meta name="apple-mobile-web-app-title" content="קבוצות">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>חלוקת קבוצות</title>
+<style>
+:root{color-scheme:light;--bg:#eef3ec;--ink:#14231a;--mute:#66766b;--line:#dbe4dc;--green:#17803f;--red:#d63a3a;--blue:#2868d8;--yellow:#e9b400;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,"Segoe UI",Arial,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:24px;margin:4px 0 14px}
+nav{display:flex;gap:6px;background:#dfe8dd;padding:4px;border-radius:12px;margin-bottom:14px}
+nav button{flex:1;border:0;background:none;padding:10px;border-radius:9px;font:inherit;font-weight:700;color:var(--mute)}
+nav button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px #0003}
+.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+h2 span{font-size:13px;font-weight:400;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font:inherit;color:var(--ink)}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.btn{border:0;border-radius:12px;padding:13px 16px;font:inherit;font-weight:700;background:var(--green);color:#fff;width:100%;display:block;text-align:center;text-decoration:none}
+.btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.wa{background:#1fae52}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.team{background:#fff;border:1px solid var(--line);border-top:8px solid var(--tc);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.th{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:13px;color:var(--mute)}
+.th b{font-size:18px;color:var(--ink)}
+.pl{display:flex;justify-content:space-between;width:100%;border:0;background:none;padding:10px 8px;font:inherit;color:var(--ink);border-radius:8px;text-align:right}
+.pl+.pl{border-top:1px solid var(--line)}
+.pl i{font-style:normal;color:var(--mute);font-size:13px}
+.pl.sel{background:#fff1b8}
+.row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.nm{flex:1}
+.st{display:flex;align-items:center;gap:8px}
+.st button,.x{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:#fff;font:inherit;font-size:18px;color:var(--ink)}
+.rv{width:76px;text-align:center;padding:10px 0;border:1.5px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-weight:700;color:var(--ink)}
+#wh{display:none;position:fixed;inset:0;background:#0007;z-index:9;align-items:flex-end}
+#wh.open{display:flex}
+.sheet{background:#fff;width:100%;max-width:520px;margin:0 auto;border-radius:18px 18px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.wrap{position:relative;height:200px;margin-bottom:10px}
+#wl{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;padding:80px 0;text-align:center;scrollbar-width:none}
+#wl::-webkit-scrollbar{display:none}
+#wl div{height:40px;line-height:40px;font-size:22px;scroll-snap-align:center;color:#9aa7a0}
+#wl div.on{color:var(--ink);font-weight:700}
+.band{position:absolute;left:0;right:0;top:80px;height:40px;border-top:1.5px solid var(--green);border-bottom:1.5px solid var(--green);pointer-events:none}
+.x{color:var(--red)}
+input,select{font:inherit;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-width:0}
+.add,.rule{display:flex;gap:8px;flex-wrap:wrap}
+.add input{flex:1}
+.add .btn{width:auto}
+.rule select{flex:1 1 40%}
+.mute{color:var(--mute);font-size:14px;margin:6px 0 0}
+.warn{color:var(--red);font-size:14px;margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+<h1>⚽ חלוקת קבוצות</h1>
+<nav><button class="on" data-tab="g">משחק</button><button data-tab="p">שחקנים</button></nav>
+
+<section id="g">
+  <div class="box">
+    <h2>מגיעים היום <span><b id="cnt">0</b> / 21 · <a href="#" id="none">נקה</a></span></h2>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="box">
+    <h2>כל השחקנים <span id="pcnt"></span></h2>
+    <input id="q" type="search" placeholder="חיפוש לפי שם" autocomplete="off" style="width:100%;margin-bottom:10px">
+    <p class="warn" id="m" style="margin:0 0 8px"></p>
+    <div class="chips" id="pool" style="max-height:320px;overflow-y:auto"></div>
+  </div>
+  <p class="warn" id="sm"></p>
+  <button class="btn" id="go">חלק קבוצות</button>
+  <div id="res" style="margin-top:14px"></div>
+  <div id="acts" hidden>
+    <p class="mute">לחץ על שחקן ואז על שחקן בקבוצה אחרת להחלפה, או על הקבוצה עצמה להעברה.</p>
+    <div id="viol" class="warn"></div>
+    <div class="btns">
+      <button class="btn alt" id="again">חלק מחדש</button>
+      <a class="btn wa" id="wa" target="_blank" rel="noopener">שלח בוואטסאפ</a>
+    </div>
+    <div class="btns" style="grid-template-columns:1fr"><button class="btn alt" id="copy">העתק טקסט</button></div>
+  </div>
+</section>
+
+<section id="p" hidden>
+  <div class="box">
+    <h2>הוספת שחקן</h2>
+    <div class="add">
+      <input id="nm" placeholder="שם" maxlength="20" autocomplete="off">
+      <button class="rv" id="rt" type="button" data-v="3" aria-label="דירוג">3.0</button>
+      <button class="btn" id="add">הוסף</button>
+    </div>
+    <p class="warn" id="pm"></p>
+  </div>
+  <div class="box"><h2>השחקנים שלי <span id="pc"></span></h2><div id="pl"></div></div>
+  <div class="box"><h2>גיבוי</h2><p class="mute" style="margin:0 0 10px">העתק את הרשימה כדי לשמור אותה בצד או להעביר לטלפון אחר.</p>
+    <div class="btns" style="margin-top:0"><button class="btn alt" id="bk">העתק גיבוי</button><button class="btn alt" id="rs">שחזר מגיבוי</button></div>
+    <textarea id="bt" hidden rows="5" style="width:100%;margin-top:10px;font:inherit;padding:10px;border:1.5px solid var(--line);border-radius:10px" placeholder="הדבק כאן את הגיבוי"></textarea>
+    <button class="btn" id="bgo" hidden style="margin-top:8px">שחזר (מחליף את הרשימה הנוכחית)</button><p class="warn" id="bm"></p></div>
+  <div class="box">
+    <h2>זוגות</h2>
+    <div class="rule">
+      <select id="ra"></select>
+      <select id="rk"><option value="t">חייבים ביחד</option><option value="n">לא ביחד</option></select>
+      <select id="rb"></select>
+      <button class="btn alt" id="radd" style="width:100%">הוסף כלל</button>
+    </div>
+    <div id="rl"></div>
+  </div>
+</section>
+</main>
+<div id="wh"><div class="sheet"><h2 style="justify-content:center">בחר דירוג</h2>
+  <div class="wrap"><div id="wl"></div><div class="band"></div></div>
+  <div class="btns" style="margin-top:0"><button class="btn alt" id="wc">ביטול</button><button class="btn" id="wo">אישור</button></div></div></div>
+<script>
+const KEY='football-teams-v2';
+const rate=v=>{v=parseFloat(String(v).replace(',','.'));if(isNaN(v))v=3;return Math.min(5,Math.max(0.1,Math.round(v*10)/10))};
+let S={players:[],rules:[],present:[]},teams=null,sel=null,last='';
+try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.players){S=x;S.players.forEach(p=>p.r=rate(p.r));S.present=(S.present||[]).slice(0,21)}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P=id=>S.players.find(p=>p.id===id);
+const COL=[{n:'אדומים',e:'🔴',c:'--red'},{n:'כחולים',e:'🔵',c:'--blue'},{n:'צהובים',e:'🟡',c:'--yellow'}];
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const key=t=>t.map(x=>x.slice().sort().join()).sort().join('|');
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  $('g').hidden=b.dataset.tab!=='g';$('p').hidden=b.dataset.tab!=='p';
+});
+
+function renderChips(){
+  const pr=S.present,q=($('q').value||'').trim(),cmp=(a,b)=>a.n.localeCompare(b.n,'he');
+  const chip=(p,on)=>`<button class="chip${on?' on':''}" data-id="${p.id}">${esc(p.n)}</button>`;
+  const a=S.players.filter(p=>pr.includes(p.id)).sort(cmp),b=S.players.filter(p=>!pr.includes(p.id)&&(!q||p.n.includes(q))).sort(cmp);
+  $('chips').innerHTML=a.length?a.map(p=>chip(p,1)).join(''):'<p class="mute" style="margin:0">עוד לא בחרת מי מגיע.</p>';
+  $('pool').innerHTML=S.players.length?(b.length?b.map(p=>chip(p,0)).join(''):'<p class="mute" style="margin:0">לא נמצאו שחקנים.</p>'):'<p class="mute" style="margin:0">עוד אין שחקנים. הוסף אותם בלשונית "שחקנים".</p>';
+  $('cnt').textContent=pr.length;$('pcnt').textContent=S.players.length+' שחקנים';
+}
+const tog=e=>{const b=e.target.closest('[data-id]');if(!b)return;const id=+b.dataset.id;$('m').textContent='';
+  if(S.present.includes(id))S.present=S.present.filter(x=>x!==id);
+  else if(S.present.length>=21){$('m').textContent='אפשר לבחור עד 21 שחקנים. הסר מישהו כדי להוסיף אחר.';return}
+  else S.present=[...S.present,id];
+  save();renderChips()};
+$('chips').onclick=tog;$('pool').onclick=tog;$('q').oninput=renderChips;
+$('none').onclick=e=>{e.preventDefault();S.present=[];$('m').textContent='';save();renderChips()};
+
+function split(){
+  const ids=S.present.filter(P),n=ids.length;$('sm').textContent='';
+  if(n<4){$('sm').textContent='סמן לפחות 4 שחקנים.';return}
+  const k=n>14?3:2,base=Math.floor(n/k),ex=n%k,cands=[];
+  const ok=t=>S.rules.every(r=>{const a=t.findIndex(x=>x.includes(r.a)),b=t.findIndex(x=>x.includes(r.b));return a<0||b<0||(r.k==='t'?a===b:a!==b)});
+  for(let i=0;i<4000;i++){
+    const o=shuf(ids.slice()),sz=shuf(Array.from({length:k},(_,j)=>base+(j<ex?1:0))),t=[];let p=0;
+    for(const s of sz){t.push(o.slice(p,p+s));p+=s}
+    if(!ok(t))continue;
+    const av=t.map(x=>x.reduce((s,id)=>s+P(id).r,0)/x.length);
+    cands.push({t,d:Math.max(...av)-Math.min(...av)});
+  }
+  if(!cands.length){$('sm').textContent='אי אפשר לעמוד בכל הזוגות שהגדרת. נסה לבטל כלל.';return}
+  cands.sort((a,b)=>a.d-b.d);
+  const seen=new Set(),pool=[];
+  for(const c of cands){const q=key(c.t);if(seen.has(q))continue;seen.add(q);if(q!==last)pool.push(c);if(pool.length>=6)break}
+  const c=pool.length?pool[Math.floor(Math.random()*pool.length)]:cands[0];
+  last=key(c.t);teams=c.t;sel=null;renderTeams();
+  $('res').scrollIntoView({behavior:'smooth',block:'start'});
+}
+const tot=t=>t.reduce((s,id)=>s+P(id).r,0);
+const shareText=()=>'⚽ הקבוצות להיום\n\n'+teams.map((t,i)=>COL[i].e+' '+COL[i].n+'\n'+t.map(id=>'• '+P(id).n).join('\n')+'\nציון כולל: '+tot(t).toFixed(1)).join('\n\n');
+function renderTeams(){
+  $('acts').hidden=!teams;
+  if(!teams){$('res').innerHTML='';return}
+  $('res').innerHTML=teams.map((t,i)=>{
+    const C=COL[i],av=t.length?(t.reduce((s,id)=>s+P(id).r,0)/t.length).toFixed(1):'-';
+    return `<div class="team" style="--tc:var(${C.c})" data-t="${i}"><div class="th"><b>${C.e} ${C.n}</b><span>${t.length} שחקנים · סה״כ ${tot(t).toFixed(1)} · ממוצע ${av}</span></div>`+
+      t.map(id=>`<button class="pl${sel===id?' sel':''}" data-p="${id}">${esc(P(id).n)}<i>${P(id).r.toFixed(1)}</i></button>`).join('')+'</div>';
+  }).join('');
+  const v=S.rules.filter(r=>{const a=teams.findIndex(x=>x.includes(r.a)),b=teams.findIndex(x=>x.includes(r.b));return a>=0&&b>=0&&(r.k==='t'?a!==b:a===b)});
+  $('viol').innerHTML=v.map(r=>`⚠️ ${esc(P(r.a).n)} ו${esc(P(r.b).n)}: ${r.k==='t'?'צריכים להיות ביחד':'לא אמורים להיות ביחד'}`).join('<br>');
+  $('wa').href='https://wa.me/?text='+encodeURIComponent(shareText());
+}
+$('go').onclick=split;$('again').onclick=split;
+$('res').onclick=e=>{
+  const tm=e.target.closest('[data-t]');if(!tm)return;
+  const ti=+tm.dataset.t,b=e.target.closest('[data-p]'),from=sel==null?-1:teams.findIndex(t=>t.includes(sel));
+  if(b){const id=+b.dataset.p;
+    if(sel==null||sel===id)sel=sel===id?null:id;
+    else if(from===ti)sel=id;
+    else{teams[from][teams[from].indexOf(sel)]=id;teams[ti][teams[ti].indexOf(id)]=sel;sel=null}
+  }else if(sel!=null){
+    if(from!==ti){teams[from]=teams[from].filter(x=>x!==sel);teams[ti].push(sel)}sel=null}
+  renderTeams();
+};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(shareText());$('copy').textContent='הועתק ✓'}catch(e){$('copy').textContent='לא ניתן להעתיק'}setTimeout(()=>$('copy').textContent='העתק טקסט',2000)};
+
+function renderPlayers(){
+  $('pc').textContent=S.players.length+' שחקנים';
+  $('pl').innerHTML=S.players.length?S.players.map(p=>`<div class="row"><span class="nm">${esc(p.n)}</span><button class="rv" data-a="v" data-id="${p.id}" aria-label="דירוג">${p.r.toFixed(1)}</button><button class="x" data-a="d" data-id="${p.id}">✕</button></div>`).join(''):'<p class="mute">עוד אין שחקנים. הוסף את החברים למעלה.</p>';
+  const o=S.players.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join('');
+  $('ra').innerHTML=o;$('rb').innerHTML=o;
+  $('rl').innerHTML=S.rules.map((r,i)=>`<div class="row"><span class="nm">${esc(P(r.a).n)} ${r.k==='t'?'חייבים ביחד עם':'לא ביחד עם'} ${esc(P(r.b).n)}</span><button class="x" data-a="r" data-i="${i}">✕</button></div>`).join('');
+}
+function addPlayer(){
+  const n=$('nm').value.trim();$('pm').textContent='';
+  if(!n)return;
+  if(S.players.some(p=>p.n===n)){$('pm').textContent='כבר יש שחקן בשם הזה.';return}
+  const id=Date.now()+Math.floor(Math.random()*1000);
+  S.players.push({id,n,r:rate($('rt').dataset.v)});save();
+  $('nm').value='';renderAll();$('nm').focus();
+}
+$('add').onclick=addPlayer;
+$('nm').onkeydown=e=>{if(e.key==='Enter')addPlayer()};
+$('pl').onclick=e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const id=+b.dataset.id,p=P(id);
+  if(b.dataset.a==='v'){pick(p.r,v=>{p.r=v;save();renderAll()});return}
+  if(b.dataset.a==='d'){S.players=S.players.filter(x=>x.id!==id);S.present=S.present.filter(x=>x!==id);S.rules=S.rules.filter(r=>r.a!==id&&r.b!==id);teams=null}
+  save();renderAll();
+};
+$('radd').onclick=()=>{
+  const a=+$('ra').value,b=+$('rb').value;
+  if(!a||!b||a===b)return;
+  S.rules.push({a,b,k:$('rk').value});save();renderAll();
+};
+$('rl').onclick=e=>{const b=e.target.closest('[data-a="r"]');if(!b)return;S.rules.splice(+b.dataset.i,1);save();renderAll()};
+$('bk').onclick=async()=>{const t=JSON.stringify({players:S.players,rules:S.rules});
+  try{await navigator.clipboard.writeText(t);$('bk').textContent='הועתק ✓'}catch(e){$('bt').hidden=false;$('bt').value=t;$('bt').select();$('bk').textContent='העתק ידנית מהתיבה'}
+  setTimeout(()=>$('bk').textContent='העתק גיבוי',2500)};
+$('rs').onclick=()=>{$('bt').hidden=false;$('bgo').hidden=false;$('bt').value='';$('bt').focus()};
+$('bgo').onclick=()=>{try{const x=JSON.parse($('bt').value);if(!Array.isArray(x.players))throw 0;
+  const ids=x.players.map(p=>+p.id);
+  S={players:x.players.map(p=>({id:+p.id,n:String(p.n),r:rate(p.r)})),rules:(x.rules||[]).filter(r=>ids.includes(r.a)&&ids.includes(r.b)),present:[]};
+  teams=null;save();renderAll();$('bt').hidden=true;$('bgo').hidden=true;$('bm').textContent=''}
+  catch(e){$('bm').textContent='הגיבוי לא תקין. הדבק את הטקסט המלא כפי שהועתק.'}};
+let wcb=null;
+$('wl').innerHTML=Array.from({length:50},(_,i)=>`<div>${((i+1)/10).toFixed(1)}</div>`).join('');
+const wi=()=>Math.min(49,Math.max(0,Math.round($('wl').scrollTop/40)));
+function mark(){const k=wi();[...$('wl').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
+$('wl').onscroll=mark;
+function pick(v,cb){wcb=cb;$('wh').classList.add('open');$('wl').scrollTop=Math.max(0,Math.round(v*10)-1)*40;mark()}
+$('wc').onclick=()=>$('wh').classList.remove('open');
+$('wh').onclick=e=>{if(e.target===$('wh'))$('wh').classList.remove('open')};
+$('wo').onclick=()=>{const v=(wi()+1)/10;$('wh').classList.remove('open');if(wcb)wcb(v)};
+$('rt').onclick=()=>pick(+$('rt').dataset.v,v=>{$('rt').dataset.v=v;$('rt').textContent=v.toFixed(1)});
+function renderAll(){renderChips();renderPlayers();renderTeams()}
+renderAll();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
